@@ -28,6 +28,20 @@ const RecipeDetail = ({ route }) => {
                 <Text style={styles.nutrient}>Potassium: {recipe.potassium} mg</Text>
                 <Text style={styles.nutrient}>Iron: {recipe.iron} mg</Text>
             </View>
+
+            {/* Ingredients Section */}
+            <View style={styles.ingredientsContainer}>
+                <Text style={styles.ingredientsTitle}>Ingredients:</Text>
+                {recipe.ingredients && recipe.ingredients.length > 0 ? (
+                    recipe.ingredients.map((ingredient, index) => (
+                        <Text key={index} style={styles.ingredient}>
+                            • {ingredient}
+                        </Text>
+                    ))
+                ) : (
+                    <Text style={styles.ingredient}>No ingredients available</Text>
+                )}
+            </View>
         </ScrollView>
     );
 };
@@ -66,6 +80,19 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     nutrient: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 5,
+    },
+    ingredientsContainer: {
+        marginTop: 20,
+    },
+    ingredientsTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    ingredient: {
         fontSize: 16,
         color: '#666',
         marginBottom: 5,
