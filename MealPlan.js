@@ -2,124 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons'; // Import the icon library
-
-const APP_ID = '9925f74c'; // Replace with your Edamam APP ID
-const APP_KEY = 'f4fd6bcb931446525fafd7e5e8434dbe'; // Replace with your Edamam APP Key
+import Icon from 'react-native-vector-icons/Ionicons';
+import { generateMealPlan } from './src/utils/generateMealPlan';
+import { refreshCategory } from './src/utils/refreshCategory';
 
 const MealPlan = () => {
     const [meals, setMeals] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [dietType, setDietType] = useState('low-carb'); // Default to 'low-carb'
-    const [open, setOpen] = useState(false); // For controlling dropdown visibility
+    const [dietType, setDietType] = useState('low-carb');
+    const [open, setOpen] = useState(false);
     const [carbLimits, setCarbLimits] = useState({
         breakfast: 10,
         lunch: 20,
         dinner: 20,
-        snack: 5, // Adding a snack category with a lower carb limit
+        snack: 5,
     });
 
     const navigation = useNavigation();
 
-    const fetchRecipes = async (mealType, diet, carbLimit) => {
-        try {
-            const response = await fetch(
-                `https://api.edamam.com/search?q=&diet=${diet}&mealType=${mealType}&app_id=${APP_ID}&app_key=${APP_KEY}&maxCarbs=${carbLimit}`
-            );
-            const data = await response.json();
-            return data.hits.map((hit) => hit.recipe);
-        } catch (error) {
-            console.error(error);
-            setLoading(false); // Stop loading in case of an error
-        }
-    };
-
-    const generateMealPlan = async () => {
-        const mealPlan = {
-            breakfast: [],
-            lunch: [],
-            dinner: [],
-            snack: [],
-        };
-
-        for (const mealType in carbLimits) {
-            const recipes = await fetchRecipes(
-                mealType,
-                dietType,
-                carbLimits[mealType]
-            );
-
-            if (recipes && recipes.length > 0) {
-                const selectedRecipes = recipes
-                    .filter((recipe) => recipe.totalNutrients.CHOCDF.quantity <= carbLimits[mealType])
-                    .slice(0, 2); // Limit to top 2
-
-                selectedRecipes.forEach((recipe) => {
-                    mealPlan[mealType].push({
-                        title: recipe.label,
-                        servings: recipe.yield,
-                        calories: recipe.calories,
-                        protein: recipe.totalNutrients.PROCNT.quantity.toFixed(1),
-                        fat: recipe.totalNutrients.FAT.quantity.toFixed(1),
-                        carb: recipe.totalNutrients.CHOCDF.quantity.toFixed(1),
-                        image: recipe.image, // Updated to be a string URL
-                        dietLabels: recipe.dietLabels || [], // Include diet labels
-                        cholesterol: recipe.totalNutrients.CHOLE.quantity.toFixed(1),
-                        sodium: recipe.totalNutrients.NA.quantity.toFixed(1),
-                        calcium: recipe.totalNutrients.CA.quantity.toFixed(1),
-                        magnesium: recipe.totalNutrients.MG.quantity.toFixed(1),
-                        potassium: recipe.totalNutrients.K.quantity.toFixed(1),
-                        iron: recipe.totalNutrients.FE.quantity.toFixed(1),
-                    });
-                });
-            } else {
-                console.warn(`No recipes found for ${mealType} with ${dietType} diet`);
-            }
-        }
-
-        setMeals(mealPlan);
-        setLoading(false);
-    };
-
     useEffect(() => {
-        generateMealPlan();
-    }, [dietType]); // Add dietType to dependency array
+        generateMealPlan(dietType, carbLimits, setMeals, setLoading);
+    }, [dietType]);
 
     const handleMealPress = (meal) => {
         navigation.navigate('RecipeDetail', {
-            recipe: {
-                title: meal.title,
-                image: meal.image,  // Pass the image URL as a string
-                dietLabels: meal.dietLabels,
-                servings: meal.servings,
-                calories: meal.calories,
-                protein: meal.protein,
-                fat: meal.fat,
-                carb: meal.carb,
-                cholesterol: meal.cholesterol,
-                sodium: meal.sodium,
-                calcium: meal.calcium,
-                magnesium: meal.magnesium,
-                potassium: meal.potassium,
-                iron: meal.iron,
-            },
+            recipe: meal,
         });
-    };
-
-    const refreshCategory = async (mealType) => {
-        setLoading(true);
-        const recipes = await fetchRecipes(mealType, dietType, carbLimits[mealType]);
-        if (recipes && recipes.length > 0) {
-            const selectedRecipes = recipes
-                .filter((recipe) => recipe.totalNutrients.CHOCDF.quantity <= carbLimits[mealType])
-                .slice(0, 2); // Limit to top 2
-
-            setMeals((prevMeals) => ({
-                ...prevMeals,
-                [mealType]: selectedRecipes,
-            }));
-        }
-        setLoading(false);
     };
 
     if (loading) {
@@ -155,7 +63,7 @@ const MealPlan = () => {
                     <View key={index} style={styles.mealSection}>
                         <View style={styles.headerContainer}>
                             <Text style={styles.mealType}>{mealType.charAt(0).toUpperCase() + mealType.slice(1)}</Text>
-                            <TouchableOpacity onPress={() => refreshCategory(mealType)}>
+                            <TouchableOpacity onPress={() => refreshCategory(mealType, dietType, carbLimits, setMeals, setLoading)}>
                                 <Icon name="reload" size={24} color="#000" />
                             </TouchableOpacity>
                         </View>
@@ -180,6 +88,8 @@ const MealPlan = () => {
         </ScrollView>
     );
 };
+
+
 
 const styles = StyleSheet.create({
     scrollContainer: {
