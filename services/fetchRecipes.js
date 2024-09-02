@@ -1,4 +1,4 @@
-// src/utils/fetchRecipes.js
+// services/fetchRecipes.js
 const APP_ID = '9925f74c';
 const APP_KEY = 'f4fd6bcb931446525fafd7e5e8434dbe';
 

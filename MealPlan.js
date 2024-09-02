@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -7,7 +7,12 @@ import { generateMealPlan } from './src/utils/generateMealPlan';
 import { refreshCategory } from './src/utils/refreshCategory';
 
 const MealPlan = () => {
-    const [meals, setMeals] = useState(null);
+    const [meals, setMeals] = useState({
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+        snack: [],
+    });
     const [loading, setLoading] = useState(true);
     const [dietType, setDietType] = useState('low-carb');
     const [open, setOpen] = useState(false);
@@ -17,11 +22,17 @@ const MealPlan = () => {
         dinner: 20,
         snack: 5,
     });
+    const [eatenMeals, setEatenMeals] = useState({
+        breakfast: false,
+        lunch: false,
+        dinner: false,
+        snack: false,
+    });
 
     const navigation = useNavigation();
 
     useEffect(() => {
-        generateMealPlan(dietType, carbLimits, setMeals, setLoading);
+        generateMealPlan(dietType, setMeals, setLoading);
     }, [dietType]);
 
     const handleMealPress = (meal) => {
@@ -29,6 +40,27 @@ const MealPlan = () => {
             recipe: meal,
         });
     };
+
+    const handleSwitchChange = (mealType) => {
+        setEatenMeals((prevEatenMeals) => ({
+            ...prevEatenMeals,
+            [mealType]: !prevEatenMeals[mealType],
+        }));
+    };
+
+    const totalNutrients = ['calories', 'protein', 'fat', 'carb'].reduce(
+        (totals, nutrient) => {
+            Object.keys(meals).forEach((mealType) => {
+                if (eatenMeals[mealType]) {
+                    meals[mealType].forEach((meal) => {
+                        totals[nutrient] += parseFloat(meal[nutrient]) || 0;
+                    });
+                }
+            });
+            return totals;
+        },
+        { calories: 0, protein: 0, fat: 0, carb: 0 }
+    );
 
     if (loading) {
         return (
@@ -46,10 +78,9 @@ const MealPlan = () => {
                     open={open}
                     value={dietType}
                     items={[
-                        { label: 'Balanced', value: 'balanced' },
-                        { label: 'High-Fiber', value: 'high-fiber' },
-                        { label: 'High-Protein', value: 'high-protein' },
                         { label: 'Low-Carb', value: 'low-carb' },
+                        { label: 'High-Protein', value: 'high-protein' },
+                        { label: 'Balanced', value: 'balanced' },
                         { label: 'Low-Fat', value: 'low-fat' },
                         { label: 'Low-Sodium', value: 'low-sodium' },
                     ]}
@@ -67,7 +98,11 @@ const MealPlan = () => {
                                 <Icon name="reload" size={24} color="#000" />
                             </TouchableOpacity>
                         </View>
-                        {meals[mealType].map((meal, idx) => (
+                        <Switch
+                            value={eatenMeals[mealType]}
+                            onValueChange={() => handleSwitchChange(mealType)}
+                        />
+                        {meals[mealType] && meals[mealType].map((meal, idx) => (
                             <TouchableOpacity key={idx} onPress={() => handleMealPress(meal)}>
                                 <View style={styles.mealContainer}>
                                     <Image source={{ uri: meal.image }} style={styles.mealImage} />
@@ -84,12 +119,17 @@ const MealPlan = () => {
                         ))}
                     </View>
                 ))}
+                <View style={styles.summaryContainer}>
+                    <Text style={styles.summaryText}>Nutritional Summary:</Text>
+                    <Text style={styles.summaryText}>Calories: {totalNutrients.calories.toFixed(2)} kcal</Text>
+                    <Text style={styles.summaryText}>Protein: {totalNutrients.protein.toFixed(2)} g</Text>
+                    <Text style={styles.summaryText}>Fat: {totalNutrients.fat.toFixed(2)} g</Text>
+                    <Text style={styles.summaryText}>Carbs: {totalNutrients.carb.toFixed(2)} g</Text>
+                </View>
             </View>
         </ScrollView>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     scrollContainer: {
@@ -159,6 +199,17 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginBottom: 2,
+    },
+    summaryContainer: {
+        marginTop: 20,
+        padding: 15,
+        backgroundColor: '#e0e0e0',
+        borderRadius: 10,
+    },
+    summaryText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 5,
     },
     loadingContainer: {
         flex: 1,
