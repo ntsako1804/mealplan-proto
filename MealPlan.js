@@ -5,6 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { generateMealPlan } from './src/utils/generateMealPlan';
 import { refreshCategory } from './src/utils/refreshCategory';
+import moment from 'moment';
+
+
 
 const MealPlan = () => {
     const [meals, setMeals] = useState({
@@ -71,9 +74,24 @@ const MealPlan = () => {
         );
     }
 
+    const currentDate = moment().format('dddd, DD MMMM YYYY');
+    const currentDay = moment().date();
+
     return (
         <ScrollView style={styles.scrollContainer}>
             <View style={styles.container}>
+                <View style={styles.dateContainer}>
+                    <Icon name="calendar-outline" size={24} color="#fff" />
+                    <Text style={styles.dateText}>{currentDate}</Text>
+                </View>
+                <View style={styles.dayContainer}>
+                    {Array.from({ length: 7 }).map((_, index) => (
+                        <Text key={index} style={[styles.dayText, index === 3 && styles.selectedDay]}>
+                            {currentDay - 3 + index}
+                        </Text>
+                    ))}
+                </View>
+
                 <DropDownPicker
                     open={open}
                     value={dietType}
@@ -89,7 +107,6 @@ const MealPlan = () => {
                     containerStyle={styles.pickerContainer}
                     dropDownContainerStyle={styles.dropdown}
                 />
-                <Text style={styles.dayText}>Day 1</Text>
                 {['breakfast', 'lunch', 'dinner', 'snack'].map((mealType, index) => (
                     <View key={index} style={styles.mealSection}>
                         <View style={styles.headerContainer}>
@@ -130,6 +147,8 @@ const MealPlan = () => {
         </ScrollView>
     );
 };
+
+
 
 const styles = StyleSheet.create({
     scrollContainer: {
@@ -215,6 +234,34 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    dateContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        backgroundColor: '#1A1A1A',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 10,
+    },
+    dateText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 10,
+    },
+    dayContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    dayText: {
+        color: '#fff',
+        fontSize: 16,
+        marginHorizontal: 5,
+    },
+    selectedDay: {
+        color: '#00BFFF', // Highlight the selected day
     },
 });
 
