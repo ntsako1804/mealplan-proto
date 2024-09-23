@@ -7,8 +7,6 @@ import { generateMealPlan } from './src/utils/generateMealPlan';
 import { refreshCategory } from './src/utils/refreshCategory';
 import moment from 'moment';
 
-
-
 const MealPlan = () => {
     const [meals, setMeals] = useState({
         breakfast: [],
@@ -18,25 +16,22 @@ const MealPlan = () => {
     });
     const [loading, setLoading] = useState(true);
     const [dietType, setDietType] = useState('low-carb');
-    const [open, setOpen] = useState(false);
-    const [carbLimits, setCarbLimits] = useState({
-        breakfast: 10,
-        lunch: 20,
-        dinner: 20,
-        snack: 5,
-    });
+    const [openDiet, setOpenDiet] = useState(false);
+    const [openHealthLabels, setOpenHealthLabels] = useState(false);
+    const [selectedHealthLabels, setSelectedHealthLabels] = useState([]);
     const [eatenMeals, setEatenMeals] = useState({
         breakfast: false,
         lunch: false,
         dinner: false,
         snack: false,
     });
+    const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD')); // Add state for selected date
 
     const navigation = useNavigation();
 
     useEffect(() => {
-        generateMealPlan(dietType, setMeals, setLoading);
-    }, [dietType]);
+        generateMealPlan(dietType, setMeals, setLoading, selectedHealthLabels, selectedDate); // Pass selected date to meal plan
+    }, [dietType, selectedHealthLabels, selectedDate]);
 
     const handleMealPress = (meal) => {
         navigation.navigate('RecipeDetail', {
@@ -74,26 +69,35 @@ const MealPlan = () => {
         );
     }
 
-    const currentDate = moment().format('dddd, DD MMMM YYYY');
-    const currentDay = moment().date();
+    const currentDate = moment();
+    const currentDay = currentDate.date();
 
     return (
         <ScrollView style={styles.scrollContainer}>
             <View style={styles.container}>
                 <View style={styles.dateContainer}>
                     <Icon name="calendar-outline" size={24} color="#fff" />
-                    <Text style={styles.dateText}>{currentDate}</Text>
+                    <Text style={styles.dateText}>{currentDate.format('dddd, DD MMMM YYYY')}</Text>
                 </View>
                 <View style={styles.dayContainer}>
-                    {Array.from({ length: 7 }).map((_, index) => (
-                        <Text key={index} style={[styles.dayText, index === 3 && styles.selectedDay]}>
-                            {currentDay - 3 + index}
-                        </Text>
-                    ))}
+                    {Array.from({ length: 7 }).map((_, index) => {
+                        const day = currentDay - 3 + index;
+                        const date = currentDate.clone().date(day).format('YYYY-MM-DD'); // Format date for meal plan
+                        return (
+                            <TouchableOpacity
+                                key={index}
+                                onPress={() => setSelectedDate(date)} // Set selected date on press
+                                style={[styles.dayButton, selectedDate === date && styles.selectedDayButton]}
+                            >
+                                <Text style={styles.dayText}>{day}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
+                {/* Dropdown for Diet Type */}
                 <DropDownPicker
-                    open={open}
+                    open={openDiet}
                     value={dietType}
                     items={[
                         { label: 'Low-Carb', value: 'low-carb' },
@@ -102,16 +106,47 @@ const MealPlan = () => {
                         { label: 'Low-Fat', value: 'low-fat' },
                         { label: 'Low-Sodium', value: 'low-sodium' },
                     ]}
-                    setOpen={setOpen}
+                    setOpen={setOpenDiet}
                     setValue={setDietType}
                     containerStyle={styles.pickerContainer}
                     dropDownContainerStyle={styles.dropdown}
                 />
+
+                {/* Dropdown for Health Labels */}
+                <DropDownPicker
+                    open={openHealthLabels}
+                    multiple={true}
+                    value={selectedHealthLabels}
+                    items={[
+                        { label: 'Gluten-Free', value: 'gluten-free' },
+                        { label: 'Peanut-Free', value: 'peanut-free' },
+                        { label: 'Dairy-Free', value: 'dairy-free' },
+                        { label: 'Tree-Nut-Free', value: 'tree-nut-free' },
+                        { label: 'Soy-Free', value: 'soy-free' },
+                        { label: 'Shellfish-Free', value: 'shellfish-free' },
+                        { label: 'Egg-Free', value: 'egg-free' },
+                        { label: 'DASH', value: 'DASH' },
+                        { label: 'Keto-Friendly', value: 'keto-friendly' },
+                        { label: 'Kosher', value: 'kosher' },
+                        { label: 'Low Potassium', value: 'low-potassium' },
+                        { label: 'Low Sugar', value: 'low-sugar' },
+                        { label: 'Vegan', value: 'vegan' },
+                        { label: 'Vegetarian', value: 'vegetarian' },
+                        { label: 'Wheat-Free', value: 'wheat-free' },
+                        // Add more health labels as needed
+                    ]}
+                    setOpen={setOpenHealthLabels}
+                    setValue={setSelectedHealthLabels}
+                    containerStyle={styles.pickerContainer}
+                    dropDownContainerStyle={styles.dropdown}
+                    placeholder="Select Health Labels (Optional)"
+                />
+
                 {['breakfast', 'lunch', 'dinner', 'snack'].map((mealType, index) => (
                     <View key={index} style={styles.mealSection}>
                         <View style={styles.headerContainer}>
                             <Text style={styles.mealType}>{mealType.charAt(0).toUpperCase() + mealType.slice(1)}</Text>
-                            <TouchableOpacity onPress={() => refreshCategory(mealType, dietType, carbLimits, setMeals, setLoading)}>
+                            <TouchableOpacity onPress={() => refreshCategory(mealType, dietType, selectedHealthLabels, setMeals, setLoading)}>
                                 <Icon name="reload" size={24} color="#000" />
                             </TouchableOpacity>
                         </View>
@@ -136,6 +171,8 @@ const MealPlan = () => {
                         ))}
                     </View>
                 ))}
+
+                {/* Nutritional Summary */}
                 <View style={styles.summaryContainer}>
                     <Text style={styles.summaryText}>Nutritional Summary:</Text>
                     <Text style={styles.summaryText}>Calories: {totalNutrients.calories.toFixed(2)} kcal</Text>
@@ -147,8 +184,6 @@ const MealPlan = () => {
         </ScrollView>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     scrollContainer: {
@@ -165,10 +200,28 @@ const styles = StyleSheet.create({
     dropdown: {
         backgroundColor: '#fafafa',
     },
-    dayText: {
-        fontSize: 24,
-        fontWeight: 'bold',
+    dayContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         marginBottom: 10,
+    },
+    dayButton: {
+        padding: 10,
+        borderRadius: 5,
+        backgroundColor: '#e0e0e0',
+        marginRight: 5,
+    },
+    selectedDayButton: {
+        backgroundColor: '#1976d2',
+    },
+    dayText: {
+        color: '#000',
+        fontWeight: 'bold',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     mealSection: {
         marginBottom: 20,
@@ -185,84 +238,49 @@ const styles = StyleSheet.create({
     },
     mealContainer: {
         flexDirection: 'row',
-        marginBottom: 10,
         backgroundColor: '#fff',
         borderRadius: 10,
-        overflow: 'hidden',
-        elevation: 3,
+        padding: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 5,
+        elevation: 2,
     },
     mealImage: {
-        width: 80,
-        height: 80,
+        width: 60,
+        height: 60,
+        borderRadius: 10,
+        marginRight: 10,
     },
     mealDetails: {
-        padding: 10,
         flex: 1,
+        justifyContent: 'center',
     },
     mealTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 5,
     },
     servings: {
-        fontSize: 14,
-        marginBottom: 5,
+        color: '#555',
     },
     calories: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#888',
-        marginBottom: 5,
+        color: '#f44336',
     },
     nutritionalInfo: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 2,
+        color: '#000',
     },
     summaryContainer: {
         marginTop: 20,
-        padding: 15,
-        backgroundColor: '#e0e0e0',
+        padding: 10,
+        backgroundColor: '#f0f0f0',
         borderRadius: 10,
     },
     summaryText: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    dateContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-        backgroundColor: '#1A1A1A',
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 10,
-    },
-    dateText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    },
-    dayContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    dayText: {
-        color: '#fff',
-        fontSize: 16,
-        marginHorizontal: 5,
-    },
-    selectedDay: {
-        color: '#00BFFF', // Highlight the selected day
     },
 });
 
 export default MealPlan;
+
